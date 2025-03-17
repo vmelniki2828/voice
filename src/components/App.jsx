@@ -1,6 +1,11 @@
 import { useMicVAD } from '@ricky0123/vad-react';
 import { useEffect, useRef, useState } from 'react';
 
+
+let audioContext;
+let source;
+
+
 const float32ToWavBlob = (audioBuffer, sampleRate = 16000) => {
   const buffer = new ArrayBuffer(44 + audioBuffer.length * 2);
   const view = new DataView(buffer);
@@ -53,14 +58,36 @@ const blobToBase64 = (blob) => {
 
 export const App = () => {
   const ws = useRef(null);
+  const audioRef = useRef(new Audio());
   const [audioUrls, setAudioUrls] = useState([]);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [vadActive, setVadActive] = useState(false);
 
+  async function playAudio(audioData) {  
+    setVadActive(false);
+  
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+  
+    let arrayBuffer = await audioData.arrayBuffer();
+    let audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+  
+    source = audioContext.createBufferSource();
+    source.buffer = audioBuffer;
+    source.connect(audioContext.destination);
+  
+    source.onended = () => {
+        setVadActive(true);
+    };
+  
+    source.start();
+  }
+
   const connectWebSocket = () => {
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
-      ws.current = new WebSocket('ws://localhost:5000');
+      ws.current = new WebSocket('ws://localhost:8000/call/v1/');
       ws.current.onopen = () => {
         console.log('WebSocket соединение установлено');
         setIsConnected(true);
@@ -72,16 +99,26 @@ export const App = () => {
         setVadActive(false);
       };
       ws.current.onerror = (error) => console.error('WebSocket ошибка:', error);
+
+      ws.current.onmessage = async (event) => {
+        try {
+          console.log(event);
+          let audioBlob = event.data;
+          await playAudio(audioBlob);
+        } catch (error) {
+          console.error('Ошибка обработки аудио:', error);
+        }
+      };
     }
   };
 
   const vad = useMicVAD({
     onSpeechEnd: async (audio) => {
-      if (!isConnected) return;
+      if (!isConnected || !vadActive) return;
       console.log('Пользователь перестал говорить');
       const wavBlob = float32ToWavBlob(audio);
       const base64Audio = await blobToBase64(wavBlob);
-
+      
       if (ws.current && ws.current.readyState === WebSocket.OPEN) {
         ws.current.send(JSON.stringify({ audio: base64Audio }));
       } else {
@@ -93,7 +130,7 @@ export const App = () => {
       setIsSpeaking(false);
     },
     onSpeechStart: () => {
-      if (!isConnected) return;
+      if (!isConnected || !vadActive) return;
       console.log('Пользователь начал говорить');
       setIsSpeaking(true);
     },
@@ -102,7 +139,7 @@ export const App = () => {
 
   return (
     <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif', textAlign: 'center' }}>
-      <h1>Голосовий інтерфейс</h1>
+      <h1>Голосовой интерфейс</h1>
       <button onClick={connectWebSocket} disabled={isConnected}>
         {isConnected ? 'WebSocket подключен' : 'Подключиться к WebSocket'}
       </button>
@@ -111,12 +148,12 @@ export const App = () => {
       </div>
       {audioUrls.length > 0 && (
         <div style={{ marginTop: '20px' }}>
-          <h2>Записані аудіофайли:</h2>
+          <h2>Записанные аудиофайлы:</h2>
           {audioUrls.map((url, index) => (
             <div key={index} style={{ marginBottom: '10px' }}>
               <audio controls>
                 <source src={url} type="audio/wav" />
-                Ваш браузер не підтримує елемент <code>audio</code>.
+                Ваш браузер не поддерживает элемент <code>audio</code>.
               </audio>
             </div>
           ))}
