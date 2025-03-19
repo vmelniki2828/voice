@@ -1,5 +1,5 @@
 import { useMicVAD } from '@ricky0123/vad-react';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 
 let audioContext;
 
