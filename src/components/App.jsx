@@ -97,7 +97,7 @@ export const App = () => {
   const connectWebSocket = () => {
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
       console.log("Создание нового WebSocket соединения...");
-      ws.current = new WebSocket('wss://call.qodeq.net/call/v1/ws');
+      ws.current = new WebSocket('ws://localhost:8000');
   
       ws.current.onopen = () => {
         console.log("WebSocket подключен!");
@@ -145,7 +145,7 @@ export const App = () => {
   };
   
 
-  const vad = useMicVAD({
+  useMicVAD({
     onSpeechEnd: async (audio) => {
       if (!isConnected) return;
 
