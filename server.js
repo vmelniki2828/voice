@@ -12,8 +12,18 @@ app.use(cors());
 wss.on('connection', (ws) => {
     console.log('Клиент подключен');
 
-    ws.on('message', (message) => {
-        console.log('Получено сообщение:', message);
+    ws.on('message', async (message) => {
+        try {
+            const data = JSON.parse(message);
+            if (data.audio) {
+                console.log('Получена аудиозапись от клиента');
+
+                // Отправляем обратно тот же base64-encoded аудиофайл
+                ws.send(JSON.stringify({ audio: data.audio }));
+            }
+        } catch (error) {
+            console.error('Ошибка обработки сообщения:', error);
+        }
     });
 
     ws.on('close', () => {
@@ -21,6 +31,6 @@ wss.on('connection', (ws) => {
     });
 });
 
-server.listen(5000, () => {
-    console.log('Сервер WebSocket запущен на порту 5000');
+server.listen(8000, () => {
+    console.log('Сервер WebSocket запущен на порту 8000');
 });
