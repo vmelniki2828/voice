@@ -13,8 +13,10 @@ const float32ToWavBlob = (audioBuffer, sampleRate = 16000) => {
     }
   };
 
-  const writeUint16 = (view, offset, value) => view.setUint16(offset, value, true);
-  const writeUint32 = (view, offset, value) => view.setUint32(offset, value, true);
+  const writeUint16 = (view, offset, value) =>
+    view.setUint16(offset, value, true);
+  const writeUint32 = (view, offset, value) =>
+    view.setUint32(offset, value, true);
 
   writeString(view, 0, 'RIFF');
   writeUint32(view, 4, 36 + audioBuffer.length * 2);
@@ -39,12 +41,13 @@ const float32ToWavBlob = (audioBuffer, sampleRate = 16000) => {
   return new Blob([view], { type: 'audio/wav' });
 };
 
-const blobToBase64 = (blob) => new Promise((resolve, reject) => {
-  const reader = new FileReader();
-  reader.onloadend = () => resolve(reader.result.split(',')[1]);
-  reader.onerror = reject;
-  reader.readAsDataURL(blob);
-});
+const blobToBase64 = blob =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
 
 export const App = () => {
   const ws = useRef(null);
@@ -66,7 +69,7 @@ export const App = () => {
     }
   };
 
-  const playAudio = async (audioData) => {
+  const playAudio = async audioData => {
     if (!audioContext) {
       audioContext = new (window.AudioContext || window.webkitAudioContext)();
     }
@@ -96,46 +99,53 @@ export const App = () => {
 
   const connectWebSocket = () => {
     if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
-      console.log("Создание нового WebSocket соединения...");
-      ws.current = new WebSocket('wss://call.qodeq.net/call/v1/ws');
-  
+      console.log('Создание нового WebSocket соединения...');
+      ws.current = new WebSocket(
+        'wss://call.qodeq.net/call/v1/ws?x_token=eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzIiwidXNlcl91dWlkIjoiZDgxNDFhOTEtOGQ1MS00YzczLThlNGYtYTRjZjJlYzhiZTBmIiwidXNlcm5hbWUiOiJWbGFkT0sxNTEiLCJvcmdhbml6YXRpb25fdXVpZCI6bnVsbCwiZXhwIjoxNzQyNDI4MDQ3LCJ0eXBlIjoiYWNjZXNzIn0.BaMz2wklQ2mWPoAx9sJOROyQOaoFs3qPIhyW_csg3bkpZzR6PPiHjhv8no5myinTyo90xFOGI4LCiZH2bQKfAsExM0XJCAhNjoeeUDOeXYTSkX-CF3uYOkVmTIENatkjl8nS_N6X5C8X-WRjlnXzDkJZ_C2ywDVtkPdCWByV0s8vqLdEFq3wplF935xNtM1WhopdbH7AZxbILsFYp7m38dYHh1UNCXfl0k9oGIn8_sW1Lg5xmOHft9Jy54qXLxzw8hX-uLMvBF2aQcCSn-0Yb8NFRU8ctXPMcpfoMUjsLr3dEcZmo-v5P-InnhCYkeQ3KcxlsAI8gdxKt_fm1VmIfeKaEi4fP0guD0cVJelL9BC0UVHSN8hkZBAXYU6PWR4FzAB429lUGKM9PfHf9ERQGyRvNEsqNCbcVYg-Yav0jxzwEU-DZys63Aa9D_y0XsbheC_WB85eb-VXkxxe_cjsWmdvJcvb732CrOsQvENJSd2iKCYECfdIF4Jkx3_0TxSx1R54a8VyihepBDFsADcEPUUwXC0q4L6R39TnnpaK3PzngRtyWgxWahKMvrqGhbYYHkC06VYubTe5PUm5AEnxIY8eiYKWYsBIbgMKh72c_STvU698EBEyFdGSGG7aPBBU0lirgzPuPHI8EKsUOMO9r-9ihVAO3hORqPd17NptTlY'
+      );
+
       ws.current.onopen = () => {
-        console.log("WebSocket подключен!");
+        console.log('WebSocket подключен!');
         setIsConnected(true);
       };
-  
-      ws.current.onclose = (event) => {
-        console.log("WebSocket отключен. Код:", event.code, "Причина:", event.reason);
+
+      ws.current.onclose = event => {
+        console.log(
+          'WebSocket отключен. Код:',
+          event.code,
+          'Причина:',
+          event.reason
+        );
         setIsConnected(false);
       };
-  
-      ws.current.onerror = (error) => {
+
+      ws.current.onerror = error => {
         console.error('Ошибка WebSocket:', error);
       };
-  
-      ws.current.onmessage = async (event) => {
-        console.log("Получено сообщение:", event.data);
-  
+
+      ws.current.onmessage = async event => {
+        console.log('Получено сообщение:', event.data);
+
         try {
           const messageData = JSON.parse(event.data);
-          if (!messageData.audio) {
-            console.log("Сообщение не содержит аудио");
+          if (!messageData.payload.audio) {
+            console.log('Сообщение не содержит аудио');
             return;
           }
-  
-          console.log("Декодирование аудиофайла...");
-          const byteCharacters = atob(messageData.audio);
+
+          console.log('Декодирование аудиофайла...');
+          const byteCharacters = atob(messageData.payload.audio);
           const byteArray = new Uint8Array(byteCharacters.length);
           for (let i = 0; i < byteCharacters.length; i++) {
             byteArray[i] = byteCharacters.charCodeAt(i);
           }
-  
+
           const audioBlob = new Blob([byteArray], { type: 'audio/wav' });
-  
-          console.log("Попытка воспроизведения аудио...");
+
+          console.log('Попытка воспроизведения аудио...');
           if (!isSpeaking) {
             await playAudio(audioBlob);
-            console.log("Аудио воспроизведено");
+            console.log('Аудио воспроизведено');
           }
         } catch (error) {
           console.error('Ошибка обработки аудио:', error);
@@ -143,23 +153,28 @@ export const App = () => {
       };
     }
   };
-  
 
   useMicVAD({
-    onSpeechEnd: async (audio) => {
+    positiveSpeechThreshold: 0.2,
+    onSpeechEnd: async audio => {
       if (!isConnected) return;
 
       const wavBlob = float32ToWavBlob(audio);
       const base64Audio = await blobToBase64(wavBlob);
 
       if (ws.current && ws.current.readyState === WebSocket.OPEN) {
-        ws.current.send(JSON.stringify({ audio: base64Audio }));
+        ws.current.send(
+          JSON.stringify({
+            type: 'conversation.new',
+            payload: { audio: base64Audio },
+          })
+        );
       }
 
       setIsSpeaking(false);
 
       const audioUrl = URL.createObjectURL(wavBlob);
-      setAudioUrls((prevUrls) => [...prevUrls, audioUrl]);
+      setAudioUrls(prevUrls => [...prevUrls, audioUrl]);
     },
     onSpeechStart: () => {
       if (!isConnected) return;
@@ -171,15 +186,27 @@ export const App = () => {
   });
 
   return (
-    <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif', textAlign: 'center' }}>
+    <div
+      style={{
+        padding: '20px',
+        fontFamily: 'Arial, sans-serif',
+        textAlign: 'center',
+      }}
+    >
       <h1>Голосовой интерфейс</h1>
       <button onClick={connectWebSocket} disabled={isConnected}>
         {isConnected ? 'WebSocket подключен' : 'Подключиться к WebSocket'}
       </button>
       <div>
-        {isSpeaking ? <p>Пользователь говорит...</p> : <p>Пользователь перестал говорить</p>}
+        {isSpeaking ? (
+          <p>Пользователь говорит...</p>
+        ) : (
+          <p>Пользователь перестал говорить</p>
+        )}
       </div>
-      <button onClick={stopAudio} disabled={!isAudioPlaying}>Остановить аудио</button>
+      <button onClick={stopAudio} disabled={!isAudioPlaying}>
+        Остановить аудио
+      </button>
 
       {audioUrls.length > 0 && (
         <div style={{ marginTop: '20px' }}>
